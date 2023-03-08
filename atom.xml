@@ -39,4 +39,29 @@
     
   </entry>
   
+  <entry>
+    <title>动态规划总结及练习巩固</title>
+    <link href="https://luorongluorong.github.io/2023/02/11/algorithms/dp_short/"/>
+    <id>https://luorongluorong.github.io/2023/02/11/algorithms/dp_short/</id>
+    <published>2023-02-11T11:39:15.000Z</published>
+    <updated>2023-03-08T15:17:42.195Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="dp-精要"><a href="#dp-精要" class="headerlink" title="dp 精要"></a>dp 精要</h1><p>在前两期中，我们介绍了动态规划的基本概念，线性动态规划，前缀和，区间动态规划，背包动态规划，状态压缩动态规划，计数动态规划，矩阵快速幂，数位动态规划。</p><p>本章我们简要回顾一下前两期的内容，首先总结一下基本概念，然后把各个题型下的题目列表整理成了思维导图方便大家回忆。如果要看详细内容或者刷题，可以翻阅动态规划精讲前两期的内容。</p><p>本期我们主要回顾线性动态规划，前缀和，区间动态规划，背包动态规划并给大家聚合题目列表。</p><p>状态压缩动态规划，计数动态规划，矩阵快速幂，数位动态规划的题目聚合列表在动态规划精讲第四期给到大家。</p><h1 id="dp-基本概念"><a href="#dp-基本概念" class="headerlink" title="dp 基本概念"></a>dp 基本概念</h1><p>在动态规划精讲第一期中，我们有介绍一些基本概念，但是欠缺一点系统性。这里我们参考《算法竞赛进阶指南》中关于动态规划的讲解，把动态规划的几个核心概念梳理一下，并做一个总结。</p><p>首先我们给出思维导图<br><img src="/static/algorithms/dp_s1.jpeg" alt="Alt text"></p><p>动态规划用一句话概括就是对各个状态维度进行分阶段、有顺序、无重复、决策性的遍历求解。</p><p>阶段(子问题)<br>动态规划把原问题视为若干个重叠子问题的逐层递进，每个子问题的求解过程都构成一个阶段。在完成前一个阶段的计算后，才会执行下一阶段的计算。</p><p>无后效性<br>【在完成前一个阶段的计算后，才会执行下一阶段的计算】</p><p>无后效性: 为了保证这些计算能够按顺序，不重复地进行，DP 要求已经求解的子问题不受后续阶段的影响。(后面的阶段对前面的阶段没有影响)</p><p>状态,转移,决策<br>由无后效性。DP 对状态空间的遍历构成 DAG，遍历顺序就是该 DAG 的一个拓扑序。DAG 中的节点对应问题的状态，边对应状态之间的转移，转移的选取是 DP 中的决策。</p><p>最优子结构<br>当动态规划用于求解最优化的问题时，下一阶段的最优解应该能由前面各阶段子问题的最优解导出。</p><p>重复子问题<br>在阶段计算完成的时候，只会在每个状态上保留与最终解集相关的代表信息，这些信息具有可重复的求解过程，并且能够导出后续阶段的代表信息。</p><p>总结<br>状态，阶段，决策是动态规划算法的三要素。</p><p>无后效性，最优子结构，重复子问题是问题能用 DP 求解的三个基本条件。</p><h1 id="分阶段"><a href="#分阶段" class="headerlink" title="分阶段"></a>分阶段</h1><p>动态规划是对各维状态进行分阶段，有顺序，无重复，决策性的遍历求解，其中对阶段进行划分后，每个阶段就是一个子问题。</p><p>动态规划算法有不同的阶段划分和推导的方式，常见的阶段划分方式如下:</p><p>「线性 DP」: 具有线性阶段划分的 DP 问题<br>「树形 DP」: 以节点的深度作为阶段的 DP 问题<br>「图上 DP」: 以节点在图上的拓扑序作为阶段的 DP 问题<br>这是一个广义的概念，与线性空间类似，如果一个 DP 算法的状态包含多个维度，但是各个维度上具有线性变化的阶段，也是「线性 DP」，例如背包问题，「区间 DP」均属于这种情况。</p><p>下面我们看一下「线性 DP」中常见的阶段划分方式，以此作为对前两期内容的复习。</p><p>（1）单串阶段划分</p><p>代表问题：最长上升子序列；<br>状态表示：dp[i] := 以 s[i] 结尾的最长上升子序列长度；<br>阶段划分：子序列的结尾位置，从前到后。<br>（2）双串阶段划分</p><p>代表问题：最长公共子序列；<br>状态表示：dp[i][j] := s[0..i], t[0..j]的最长公共子序列长度；<br>阶段划分：s 和 t 分别已经处理的长度，二维。<br>（3）棋盘阶段划分</p><p>代表问题：数字三角形；<br>状态表示：dp[i][j] := 从 (0, 0) 走到 (i, j) 的最大的和；<br>阶段划分：路径的结尾位置（矩阵中的行列位置），二维。</p><h1 id="线性动态规划"><a href="#线性动态规划" class="headerlink" title="线性动态规划"></a>线性动态规划</h1><p>「单串 DP」<br>对于「单串线性 DP」问题，i 是单串 s 上的位置。作为阶段具有时间或者位置等含义。有时只有单串上的位置不足以表示状态，需要同时附加一个维度 k，一般 k 有长度、个数、次数、颜色等含义。另，所附加的维度有时候可以是多个，如 k1, k2, …</p><p>没有附加状态维度<br><img src="/static/algorithms/dp_s2.png" alt="Alt text"></p><p>附加一维状态<br><img src="/static/algorithms/dp_s3.jpeg" alt="Alt text"></p><p>附加多维状态<br><img src="/static/algorithms/dp_s4.jpeg" alt="Alt text"></p><p>「双串 DP」<br>dp[i][j]: i, j 分别是两个串上的位置。i, j 共同作为阶段，具有位置等含义。没有附加维度。<br><img src="/static/algorithms/dp_s5.jpeg" alt="Alt text"></p><p>「棋盘 DP」<br>dp[i][j]: i, j 分别是棋盘（矩阵）的横纵坐标。阶段划分常见的两种情况分别为：</p><p>（1）i 作为阶段，具有位置等含义。j 是附加状态。<br>（2）i, j 共同作为阶段，具有位置等含义。没有附加维度。</p><p><img src="/static/algorithms/dp_s6.jpeg" alt="Alt text"></p><p>「线性 DP」总结<br>下图是 Leetcode 上「线性 DP」的题目分类汇总，方便大家从整体上把握题目。其中不含「区间 DP」，「背包 DP」和前缀和。这三块将分别有专题汇总。</p><p><img src="/static/algorithms/dp_s7.png" alt="Alt text"></p><h1 id="前缀和"><a href="#前缀和" class="headerlink" title="前缀和"></a>前缀和</h1><p><img src="/static/algorithms/dp_s8.png" alt="Alt text"></p><h1 id="区间动态规划"><a href="#区间动态规划" class="headerlink" title="区间动态规划"></a>区间动态规划</h1><p>对于「区间 DP」，i, j 分别是区间的左右端点，其中阶段为区间长度(j - i + 1)，另外有一个是附加状态是区间左端点 i。</p><p>有的题会同时有附加维度 k。一般 k 会有长度，个数，次数，颜色等含义。</p><h2 id="减治型"><a href="#减治型" class="headerlink" title="减治型"></a>减治型</h2><p>dp[i][j] 仅与常数个更小规模子问题有关，不需要枚举分割点然后两边分别求解。</p><p>一般是与 dp[i + 1][j], dp[i][j - 1], dp[i + 1][j - 1] 有关。</p><h2 id="分治型"><a href="#分治型" class="headerlink" title="分治型"></a>分治型</h2><p>dp[i][j] 仅与 O(n) 个更小规模子问题有关，需要枚举分割点然后两边分别求解。</p><p>一般是枚举 [i, j] 的分割点，将区间分为 [i, k] 和 [k+1, j]， 对每个 k 分别求解（下面公式的 f），再汇总（下面公式的 g）。</p><p><img src="/static/algorithms/dp_s9.png" alt="Alt text"></p><h1 id="背包动态规划"><a href="#背包动态规划" class="headerlink" title="背包动态规划"></a>背包动态规划</h1><p>对于背包问题，“已经处理的物品数”为阶段，“背包的总体积”为附加状态。</p><p>下面是 Leetcode 上与「背包 DP」相关的题目，一共十几道，分成了「01 背包」和「完全背包」、「组合问题」和「优化问题」两个维度，方便大家在刷题中感悟总结。<br><img src="/static/algorithms/dp_s10.png" alt="Alt text"></p>]]></content>
+    
+    
+    <summary type="html">总结动态规划相关的基本概念，类别划分及具体练习，帮助读者加以理解和巩固。</summary>
+    
+    
+    
+    <category term="技术" scheme="https://luorongluorong.github.io/categories/%E6%8A%80%E6%9C%AF/"/>
+    
+    
+    <category term="算法" scheme="https://luorongluorong.github.io/tags/%E7%AE%97%E6%B3%95/"/>
+    
+    <category term="动态规划" scheme="https://luorongluorong.github.io/tags/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/"/>
+    
+    <category term="练习" scheme="https://luorongluorong.github.io/tags/%E7%BB%83%E4%B9%A0/"/>
+    
+  </entry>
+  
 </feed>
