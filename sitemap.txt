@@ -1,3 +1,5 @@
+https://luorongluorong.github.io/2022/06/02/commands/git/
+https://luorongluorong.github.io/2023/01/16/algorithms/prefix_sum/
 https://luorongluorong.github.io/2023/02/11/algorithms/dp_short/
 https://luorongluorong.github.io/2023/02/15/arts/museum_exhibition_bottlicelli_to_van_gogh/
 https://luorongluorong.github.io/categories/index.html
@@ -6,6 +8,9 @@ https://luorongluorong.github.io/
 https://luorongluorong.github.io/tags/%E7%AE%97%E6%B3%95/
 https://luorongluorong.github.io/tags/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/
 https://luorongluorong.github.io/tags/%E7%BB%83%E4%B9%A0/
+https://luorongluorong.github.io/tags/%E5%89%8D%E7%BC%80%E5%92%8C/
+https://luorongluorong.github.io/tags/Git/
+https://luorongluorong.github.io/tags/%E5%91%BD%E4%BB%A4/
 https://luorongluorong.github.io/tags/%E6%B2%B9%E7%94%BB/
 https://luorongluorong.github.io/tags/%E5%8D%9A%E7%89%A9%E9%A6%86/
 https://luorongluorong.github.io/categories/%E6%8A%80%E6%9C%AF/
