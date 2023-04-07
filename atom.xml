@@ -6,7 +6,7 @@
   <link href="https://luorongluorong.github.io/atom.xml" rel="self"/>
   
   <link href="https://luorongluorong.github.io/"/>
-  <updated>2023-04-02T03:59:20.945Z</updated>
+  <updated>2023-04-07T03:34:49.502Z</updated>
   <id>https://luorongluorong.github.io/</id>
   
   <author>
@@ -15,6 +15,35 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>使用 pdb 进行命令行调试</title>
+    <link href="https://luorongluorong.github.io/2023/04/07/bases/py_pdb/"/>
+    <id>https://luorongluorong.github.io/2023/04/07/bases/py_pdb/</id>
+    <published>2023-04-07T02:19:48.000Z</published>
+    <updated>2023-04-07T03:34:49.502Z</updated>
+    
+    <content type="html"><![CDATA[<p>Python 的 pdb 模块是一个可交互的源代码调试器，支持源代码级别的断点和单步调试。</p><h1 id="Python-进入-pdb-调试模式的两种方式"><a href="#Python-进入-pdb-调试模式的两种方式" class="headerlink" title="Python 进入 pdb 调试模式的两种方式"></a>Python 进入 pdb 调试模式的两种方式</h1><h2 id="1-直接在命令行参数指定使用-pdb-模块启动-Python-文件"><a href="#1-直接在命令行参数指定使用-pdb-模块启动-Python-文件" class="headerlink" title="1. 直接在命令行参数指定使用 pdb 模块启动 Python 文件"></a>1. 直接在命令行参数指定使用 pdb 模块启动 Python 文件</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python -m pdb myscript.py</span><br></pre></td></tr></table></figure><h2 id="2-在程序代码中设置断点"><a href="#2-在程序代码中设置断点" class="headerlink" title="2. 在程序代码中设置断点"></a>2. 在程序代码中设置断点</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 首先需要在程序中使用如下语句导入 pdb 模块:</span></span><br><span class="line"><span class="keyword">import</span> pdb</span><br><span class="line"><span class="comment"># 然后再在需要设置断点的地方放置如下断点设置代码:</span></span><br><span class="line">pdb.set_trace()</span><br></pre></td></tr></table></figure><h1 id="pdb-的常用命令-commands"><a href="#pdb-的常用命令-commands" class="headerlink" title="pdb 的常用命令(commands)"></a>pdb 的常用命令(commands)</h1><h2 id="常用命令"><a href="#常用命令" class="headerlink" title="常用命令"></a>常用命令</h2><div class="table-container"><table><thead><tr><th>命令</th><th>用途</th></tr></thead><tbody><tr><td>h(elp) [command]</td><td>有参数则打印 command，没参数则打印所有可用的 commands。<code>help pdb</code> 打印 pdb 模块的文档。</td></tr><tr><td>w(here)</td><td>打印堆栈信息，最新的帧在最底部。箭头表示当前帧。</td></tr><tr><td>b(reak)</td><td>查看断点及其编号。</td></tr><tr><td>b(reak) lineno</td><td>在 lineno 行打一个断点</td></tr><tr><td>tbreak</td><td>temporary break point，一个临时的断点，只断一次。</td></tr><tr><td>cl(ear) lineno</td><td>清除该行的断点。</td></tr><tr><td>cl(ear) lineno1 lineno2 lineno3</td><td>清除该几行的断点。</td></tr><tr><td>cl(ear)</td><td>清楚全部断点。</td></tr><tr><td>n(ext)</td><td>执行下一行（不会进入函数体）</td></tr><tr><td>s(tep)</td><td>执行下一行（能够进入函数体）</td></tr><tr><td>r(eturn)</td><td>执行下一行（在函数中时会直接执行到函数返回处）</td></tr><tr><td>c(ont(inue))</td><td>继续运行到下一个断点。</td></tr><tr><td>unt(il) [lineno]</td><td>持续执行直到运行到指定行（或遇到断点）。</td></tr><tr><td>l(ist) [first[, last]]</td><td>打印当前文件的源代码。</td></tr><tr><td>ll or longlist</td><td>打印当前 function 或 frame 的所有的源代码。</td></tr><tr><td>p expression</td><td>打印 expression 的值。</td></tr><tr><td>pp expression</td><td>打印 expression，但是 pretty-printed。</td></tr><tr><td>whatis expression</td><td>打印 expression 的 type。</td></tr><tr><td>q(uit)</td><td>中止并退出调试。</td></tr></tbody></table></div><h2 id="常用函数"><a href="#常用函数" class="headerlink" title="常用函数"></a>常用函数</h2><div class="table-container"><table><thead><tr><th>命令</th><th>用途</th></tr></thead><tbody><tr><td>dir()</td><td>打印出一个变量的列表。</td></tr><tr><td>locals() or vars()</td><td>打印出当前作用域中的所有变量，包括 Python 解释器自动创建的内部变量和模块级别的变量。</td></tr></tbody></table></div><p>如果使用 locals() 函数的话，需要过滤器 <code>print(&#123;k:v for k,v in locals().items() if k in (&#39;x&#39;, &#39;y&#39;)&#125;)</code>。</p><h1 id="实战"><a href="#实战" class="headerlink" title="实战"></a>实战</h1><p>代码如下：<br><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/python3</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># from https://www.runoob.com/python3/python3-class.html</span></span><br><span class="line"> </span><br><span class="line"><span class="comment"># 类定义</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">people</span>:</span><br><span class="line">    <span class="comment">#定义基本属性</span></span><br><span class="line">    name = <span class="string">&#x27;&#x27;</span></span><br><span class="line">    age = <span class="number">0</span></span><br><span class="line">    <span class="comment">#定义私有属性,私有属性在类外部无法直接进行访问</span></span><br><span class="line">    __weight = <span class="number">0</span></span><br><span class="line">    <span class="comment">#定义构造方法</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self,n,a,w</span>):</span><br><span class="line">        self.name = n</span><br><span class="line">        self.age = a</span><br><span class="line">        self.__weight = w</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">speak</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;%s 说: 我 %d 岁。&quot;</span> %(self.name,self.age))</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 实例化类</span></span><br><span class="line">p = people(<span class="string">&#x27;runoob&#x27;</span>,<span class="number">10</span>,<span class="number">30</span>)</span><br><span class="line">p.speak()</span><br><span class="line"></span><br></pre></td></tr></table></figure></p><p>简单调试过程如下：</p><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">$ python -m pdb myscript.py</span><br><span class="line">&gt; /home/fdse/luorong/learn/test/myscript.py(6)&lt;module&gt;()</span><br><span class="line">-&gt; class people:</span><br><span class="line"></span><br><span class="line">(Pdb) n</span><br><span class="line">&gt; /home/fdse/luorong/learn/test/myscript.py(21)&lt;module&gt;()</span><br><span class="line">-&gt; p = people(<span class="string">&#x27;runoob&#x27;</span>,10,30)</span><br><span class="line"></span><br><span class="line">(Pdb) n</span><br><span class="line">&gt; /home/fdse/luorong/learn/test/myscript.py(22)&lt;module&gt;()</span><br><span class="line">-&gt; p.speak()</span><br><span class="line"></span><br><span class="line">(Pdb) <span class="built_in">dir</span>()</span><br><span class="line">[<span class="string">&#x27;__builtins__&#x27;</span>, <span class="string">&#x27;__file__&#x27;</span>, <span class="string">&#x27;__name__&#x27;</span>, <span class="string">&#x27;p&#x27;</span>, <span class="string">&#x27;people&#x27;</span>]</span><br><span class="line"></span><br><span class="line">(Pdb) b 22</span><br><span class="line">Breakpoint 2 at /home/fdse/luorong/learn/test/myscript.py:22</span><br><span class="line"></span><br><span class="line">(Pdb) b</span><br><span class="line">Num Type         Disp Enb   Where</span><br><span class="line">1   breakpoint   keep <span class="built_in">yes</span>   at /home/fdse/luorong/learn/test/myscript.py:22</span><br><span class="line"></span><br><span class="line">(Pdb) whatis p</span><br><span class="line">&lt;class <span class="string">&#x27;__main__.people&#x27;</span>&gt;</span><br></pre></td></tr></table></figure><p>在 PDB 中，使用 <code>b</code> 命令后显示的参数：</p><ul><li>disp 用于控制是否显示当前断点的信息。</li><li>enb 和 dis 用于启用和禁用断点。</li><li>num 用于显示断点的编号。</li><li>where 用于显示当前程序的调用堆栈。</li></ul><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul><li><a href="https://docs.python.org/3/library/pdb.html">pdb — The Python Debugger</a></li><li><a href="https://blog.csdn.net/tuzixini/article/details/79614655">pdb用法-Python 命令行调试工具</a></li></ul>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;Python 的 pdb 模块是一个可交互的源代码调试器，支持源代码级别的断点和单步调试。&lt;/p&gt;
+&lt;h1 id=&quot;Python-进入-pdb-调试模式的两种方式&quot;&gt;&lt;a href=&quot;#Python-进入-pdb-调试模式的两种方式&quot; class=&quot;headerlink&quot; </summary>
+      
+    
+    
+    
+    <category term="技术" scheme="https://luorongluorong.github.io/categories/%E6%8A%80%E6%9C%AF/"/>
+    
+    
+    <category term="pdb" scheme="https://luorongluorong.github.io/tags/pdb/"/>
+    
+    <category term="Python" scheme="https://luorongluorong.github.io/tags/Python/"/>
+    
+    <category term="调试" scheme="https://luorongluorong.github.io/tags/%E8%B0%83%E8%AF%95/"/>
+    
+  </entry>
   
   <entry>
     <title>最大公约数和最小公倍数：辗转相除法</title>
@@ -87,9 +116,9 @@
     <category term="技术" scheme="https://luorongluorong.github.io/categories/%E6%8A%80%E6%9C%AF/"/>
     
     
-    <category term="原创" scheme="https://luorongluorong.github.io/tags/%E5%8E%9F%E5%88%9B/"/>
-    
     <category term="算法" scheme="https://luorongluorong.github.io/tags/%E7%AE%97%E6%B3%95/"/>
+    
+    <category term="原创" scheme="https://luorongluorong.github.io/tags/%E5%8E%9F%E5%88%9B/"/>
     
     <category term="LCS" scheme="https://luorongluorong.github.io/tags/LCS/"/>
     
@@ -185,9 +214,9 @@
     <category term="技术" scheme="https://luorongluorong.github.io/categories/%E6%8A%80%E6%9C%AF/"/>
     
     
-    <category term="原创" scheme="https://luorongluorong.github.io/tags/%E5%8E%9F%E5%88%9B/"/>
-    
     <category term="算法" scheme="https://luorongluorong.github.io/tags/%E7%AE%97%E6%B3%95/"/>
+    
+    <category term="原创" scheme="https://luorongluorong.github.io/tags/%E5%8E%9F%E5%88%9B/"/>
     
     <category term="前缀和" scheme="https://luorongluorong.github.io/tags/%E5%89%8D%E7%BC%80%E5%92%8C/"/>
     
@@ -235,9 +264,9 @@
     
     <category term="论文" scheme="https://luorongluorong.github.io/tags/%E8%AE%BA%E6%96%87/"/>
     
-    <category term="原创" scheme="https://luorongluorong.github.io/tags/%E5%8E%9F%E5%88%9B/"/>
-    
     <category term="练习" scheme="https://luorongluorong.github.io/tags/%E7%BB%83%E4%B9%A0/"/>
+    
+    <category term="原创" scheme="https://luorongluorong.github.io/tags/%E5%8E%9F%E5%88%9B/"/>
     
     <category term="前端" scheme="https://luorongluorong.github.io/tags/%E5%89%8D%E7%AB%AF/"/>
     
