@@ -1,0 +1,214 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"><title>基于 ChatGPT 的 Prompt 工程：文本转换任务 | LuoRongLuoRong</title><meta name="author" content="LuoRongLuoRong"><meta name="copyright" content="LuoRongLuoRong"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="本文是《基于 ChatGPT 的 Prompt 工程》系列课程的第四讲，本文将探讨如何使用大型语言模型进行文本转换任务。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="基于 ChatGPT 的 Prompt 工程：文本转换任务">
+<meta property="og:url" content="https://luorongluorong.github.io/2023/05/04/llm/chatgpt_prompt_engineering/lec04_transforming/index.html">
+<meta property="og:site_name" content="LuoRongLuoRong">
+<meta property="og:description" content="本文是《基于 ChatGPT 的 Prompt 工程》系列课程的第四讲，本文将探讨如何使用大型语言模型进行文本转换任务。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://luorongluorong.github.io/static/llm/chatgpt_prompt.jpg">
+<meta property="article:published_time" content="2023-05-04T04:39:19.000Z">
+<meta property="article:modified_time" content="2023-05-06T01:22:32.453Z">
+<meta property="article:author" content="LuoRongLuoRong">
+<meta property="article:tag" content="ChatGPT">
+<meta property="article:tag" content="Prompt">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://luorongluorong.github.io/static/llm/chatgpt_prompt.jpg"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://luorongluorong.github.io/2023/05/04/llm/chatgpt_prompt_engineering/lec04_transforming/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  }
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '基于 ChatGPT 的 Prompt 工程：文本转换任务',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-05-06 09:22:32'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = url => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      link.onload = () => resolve()
+      link.onerror = () => reject()
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.3.0"><link rel="alternate" href="/atom.xml" title="LuoRongLuoRong" type="application/atom+xml">
+</head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">33</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">53</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">3</div></a></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/guestbook/"><i class="fa-fw fa fa-book"></i><span> 留言</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('/static/llm/chatgpt_prompt.jpg')"><nav id="nav"><span id="blog-info"><a href="/" title="LuoRongLuoRong"><span class="site-name">LuoRongLuoRong</span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/guestbook/"><i class="fa-fw fa fa-book"></i><span> 留言</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">基于 ChatGPT 的 Prompt 工程：文本转换任务</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="fa-fw post-meta-icon far fa-calendar-alt"></i><span class="post-meta-label">发表于</span><time datetime="2023-05-04T04:39:19.000Z" title="发表于 2023-05-04 12:39:19">2023-05-04</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%8A%80%E6%9C%AF/">技术</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">749</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>3分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="基于 ChatGPT 的 Prompt 工程：文本转换任务"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><p>本文是《基于 ChatGPT 的 Prompt 工程》系列课程的第四讲，本文将探讨如何使用大型语言模型进行文本转换任务（text transformation tasks），如语言翻译（language translation），拼写和语法检查（spelling and grammar checking），音调调整（tone adjustment）和格式转换（format conversion）。</p>
+<h1 id="语言转换和识别"><a href="#语言转换和识别" class="headerlink" title="语言转换和识别"></a>语言转换和识别</h1><p>提示词如下：</p>
+<ul>
+<li>Translate the following English text to Spanish</li>
+<li>Tell me which language this is</li>
+<li>Translate the following  text to French and Spanish<br>and English pirate:</li>
+<li>Translate the following text to Spanish in both the formal and informal forms</li>
+</ul>
+<h1 id="万国语言转换器"><a href="#万国语言转换器" class="headerlink" title="万国语言转换器"></a>万国语言转换器</h1><p>为一群程序员写一个 issue 语言转换器，把所有信息都翻译成韩语和英语。</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">user_messages = [</span><br><span class="line">  <span class="string">&quot;La performance du système est plus lente que d&#x27;habitude.&quot;</span>,  <span class="comment"># System performance is slower than normal         </span></span><br><span class="line">  <span class="string">&quot;Mi monitor tiene píxeles que no se iluminan.&quot;</span>,              <span class="comment"># My monitor has pixels that are not lighting</span></span><br><span class="line">  <span class="string">&quot;Il mio mouse non funziona&quot;</span>,                                 <span class="comment"># My mouse is not working</span></span><br><span class="line">  <span class="string">&quot;Mój klawisz Ctrl jest zepsuty&quot;</span>,                             <span class="comment"># My keyboard has a broken control key</span></span><br><span class="line">  <span class="string">&quot;我的屏幕在闪烁&quot;</span>                                               <span class="comment"># My screen is flashing</span></span><br><span class="line">] </span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> issue <span class="keyword">in</span> user_messages:</span><br><span class="line">    prompt = <span class="string">f&quot;Tell me what language this is: ```<span class="subst">&#123;issue&#125;</span>```&quot;</span></span><br><span class="line">    lang = get_completion(prompt)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;Original message (<span class="subst">&#123;lang&#125;</span>): <span class="subst">&#123;issue&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">    prompt = <span class="string">f&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    Translate the following  text to English \</span></span><br><span class="line"><span class="string">    and Korean: ```<span class="subst">&#123;issue&#125;</span>```</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    response = get_completion(prompt)</span><br><span class="line">    <span class="built_in">print</span>(response, <span class="string">&quot;\n&quot;</span>)</span><br></pre></td></tr></table></figure>
+<h1 id="语态转换（Tone-Transformation）"><a href="#语态转换（Tone-Transformation）" class="headerlink" title="语态转换（Tone Transformation）"></a>语态转换（Tone Transformation）</h1><p>正式场合与非正式场合语言的转换，提示词如下：</p>
+<ul>
+<li>Translate the following from slang to a business letter: </li>
+</ul>
+<h1 id="格式转换（Format-Conversation）"><a href="#格式转换（Format-Conversation）" class="headerlink" title="格式转换（Format Conversation）"></a>格式转换（Format Conversation）</h1><p>ChatGPT 可以在不同格式之间转换，比如 Latex、HTML、Markdown。</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">data_json = &#123; <span class="string">&quot;resturant employees&quot;</span> :[ </span><br><span class="line">    &#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;Shyam&quot;</span>, <span class="string">&quot;email&quot;</span>:<span class="string">&quot;shyamjaiswal@gmail.com&quot;</span>&#125;,</span><br><span class="line">    &#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;Bob&quot;</span>, <span class="string">&quot;email&quot;</span>:<span class="string">&quot;bob32@gmail.com&quot;</span>&#125;,</span><br><span class="line">    &#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;Jai&quot;</span>, <span class="string">&quot;email&quot;</span>:<span class="string">&quot;jai87@gmail.com&quot;</span>&#125;</span><br><span class="line">]&#125;</span><br><span class="line"></span><br><span class="line">prompt = <span class="string">f&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">Translate the following python dictionary from JSON to an HTML \</span></span><br><span class="line"><span class="string">table with column headers and title: <span class="subst">&#123;data_json&#125;</span></span></span><br><span class="line"><span class="string">&quot;&quot;&quot;</span></span><br><span class="line">response = get_completion(prompt)</span><br><span class="line"><span class="built_in">print</span>(response)</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> IPython.display <span class="keyword">import</span> display, Markdown, Latex, HTML, JSON</span><br><span class="line">display(HTML(response))</span><br></pre></td></tr></table></figure>
+<p>上面这个例子把 JSON 转换成了 Markdown。</p>
+<h1 id="拼写检查和语法检查"><a href="#拼写检查和语法检查" class="headerlink" title="拼写检查和语法检查"></a>拼写检查和语法检查</h1><p>提示词如下：</p>
+<ul>
+<li>proofread and correct this review:</li>
+<li>Proofread and correct the following text and rewrite the corrected version. If you don’t find any errors, just say “No errors found”. Don’t use any punctuation around the text:</li>
+<li>proofread and correct this review. Make it more compelling. Ensure it follows APA style guide and targets an advanced reader. Output in markdown format.</li>
+</ul>
+<p>举例：<br><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">text = <span class="string">f&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">Got this for my daughter for her birthday cuz she keeps taking \</span></span><br><span class="line"><span class="string">mine from my room.  Yes, adults also like pandas too.  She takes \</span></span><br><span class="line"><span class="string">it everywhere with her, and it&#x27;s super soft and cute.  One of the \</span></span><br><span class="line"><span class="string">ears is a bit lower than the other, and I don&#x27;t think that was \</span></span><br><span class="line"><span class="string">designed to be asymmetrical. It&#x27;s a bit small for what I paid for it \</span></span><br><span class="line"><span class="string">though. I think there might be other options that are bigger for \</span></span><br><span class="line"><span class="string">the same price.  It arrived a day earlier than expected, so I got \</span></span><br><span class="line"><span class="string">to play with it myself before I gave it to my daughter.</span></span><br><span class="line"><span class="string">&quot;&quot;&quot;</span></span><br><span class="line">prompt = <span class="string">f&quot;proofread and correct this review: ```<span class="subst">&#123;text&#125;</span>```&quot;</span></span><br><span class="line">response = get_completion(prompt)</span><br><span class="line"><span class="built_in">print</span>(response)</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> redlines <span class="keyword">import</span> Redlines</span><br><span class="line"></span><br><span class="line">diff = Redlines(text,response)</span><br><span class="line"><span class="comment"># 格式化展示文本被删除的部分</span></span><br><span class="line">display(Markdown(diff.output_markdown))</span><br></pre></td></tr></table></figure></p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>本文介绍了大模型在文本转换任务上的出色表现。</p>
+<p>对于科研工作者来说，ChatGPT 在写论文方面真的是最佳助手。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
+<li><a target="_blank" rel="noopener" href="https://learn.deeplearning.ai/chatgpt-prompt-eng/lesson/6/transforming">Transforming</a></li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="https://LuoRongLuoRong.github.io">LuoRongLuoRong</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://luorongluorong.github.io/2023/05/04/llm/chatgpt_prompt_engineering/lec04_transforming/">https://luorongluorong.github.io/2023/05/04/llm/chatgpt_prompt_engineering/lec04_transforming/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://LuoRongLuoRong.github.io" target="_blank">LuoRongLuoRong</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/ChatGPT/">ChatGPT</a><a class="post-meta__tags" href="/tags/Prompt/">Prompt</a></div><div class="post_share"><div class="social-share" data-image="/static/llm/chatgpt_prompt.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2023/05/05/llm/chatgpt_prompt_engineering/lec05_chatbot/" title="基于 ChatGPT 的 Prompt 工程：定制化任务"><img class="cover" src="/static/llm/chatgpt_prompt.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">基于 ChatGPT 的 Prompt 工程：定制化任务</div></div></a></div><div class="next-post pull-right"><a href="/2023/05/03/llm/chatgpt_prompt_engineering/lec03_inferring/" title="基于 ChatGPT 的 Prompt 工程：情感推断、信息提取"><img class="cover" src="/static/llm/chatgpt_prompt.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">基于 ChatGPT 的 Prompt 工程：情感推断、信息提取</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2023/05/01/llm/chatgpt_prompt_engineering/lec01_guideline/" title="基于 ChatGPT 的 Prompt 工程：指导方针"><img class="cover" src="/static/llm/chatgpt_prompt.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-05-01</div><div class="title">基于 ChatGPT 的 Prompt 工程：指导方针</div></div></a></div><div><a href="/2023/05/03/llm/chatgpt_prompt_engineering/lec03_inferring/" title="基于 ChatGPT 的 Prompt 工程：情感推断、信息提取"><img class="cover" src="/static/llm/chatgpt_prompt.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-05-03</div><div class="title">基于 ChatGPT 的 Prompt 工程：情感推断、信息提取</div></div></a></div><div><a href="/2023/05/02/llm/chatgpt_prompt_engineering/lec02_iterative_prompt_development/" title="基于 ChatGPT 的 Prompt 工程：迭代式 Prompt 开发——实例展示"><img class="cover" src="/static/llm/chatgpt_prompt.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-05-02</div><div class="title">基于 ChatGPT 的 Prompt 工程：迭代式 Prompt 开发——实例展示</div></div></a></div><div><a href="/2023/05/05/llm/chatgpt_prompt_engineering/lec05_chatbot/" title="基于 ChatGPT 的 Prompt 工程：定制化任务"><img class="cover" src="/static/llm/chatgpt_prompt.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-05-05</div><div class="title">基于 ChatGPT 的 Prompt 工程：定制化任务</div></div></a></div></div></div><hr/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">LuoRongLuoRong</div><div class="author-info__description"></div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">33</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">53</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">3</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/LuoRongLuoRong"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/LuoRongLuoRong" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:luorongfamily@qq.com" target="_blank" title="Email"><i class="fas fa-envelope"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>简介</span></div><div class="announcement_content">复旦大学计算机软件与理论硕士</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E8%AF%AD%E8%A8%80%E8%BD%AC%E6%8D%A2%E5%92%8C%E8%AF%86%E5%88%AB"><span class="toc-text">语言转换和识别</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B8%87%E5%9B%BD%E8%AF%AD%E8%A8%80%E8%BD%AC%E6%8D%A2%E5%99%A8"><span class="toc-text">万国语言转换器</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E8%AF%AD%E6%80%81%E8%BD%AC%E6%8D%A2%EF%BC%88Tone-Transformation%EF%BC%89"><span class="toc-text">语态转换（Tone Transformation）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%A0%BC%E5%BC%8F%E8%BD%AC%E6%8D%A2%EF%BC%88Format-Conversation%EF%BC%89"><span class="toc-text">格式转换（Format Conversation）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%8B%BC%E5%86%99%E6%A3%80%E6%9F%A5%E5%92%8C%E8%AF%AD%E6%B3%95%E6%A3%80%E6%9F%A5"><span class="toc-text">拼写检查和语法检查</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-text">总结</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-text">参考</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2023/05/05/llm/chatgpt_prompt_engineering/lec05_chatbot/" title="基于 ChatGPT 的 Prompt 工程：定制化任务"><img src="/static/llm/chatgpt_prompt.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="基于 ChatGPT 的 Prompt 工程：定制化任务"/></a><div class="content"><a class="title" href="/2023/05/05/llm/chatgpt_prompt_engineering/lec05_chatbot/" title="基于 ChatGPT 的 Prompt 工程：定制化任务">基于 ChatGPT 的 Prompt 工程：定制化任务</a><time datetime="2023-05-05T04:39:19.000Z" title="发表于 2023-05-05 12:39:19">2023-05-05</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/05/04/llm/chatgpt_prompt_engineering/lec04_transforming/" title="基于 ChatGPT 的 Prompt 工程：文本转换任务"><img src="/static/llm/chatgpt_prompt.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="基于 ChatGPT 的 Prompt 工程：文本转换任务"/></a><div class="content"><a class="title" href="/2023/05/04/llm/chatgpt_prompt_engineering/lec04_transforming/" title="基于 ChatGPT 的 Prompt 工程：文本转换任务">基于 ChatGPT 的 Prompt 工程：文本转换任务</a><time datetime="2023-05-04T04:39:19.000Z" title="发表于 2023-05-04 12:39:19">2023-05-04</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/05/03/llm/chatgpt_prompt_engineering/lec03_inferring/" title="基于 ChatGPT 的 Prompt 工程：情感推断、信息提取"><img src="/static/llm/chatgpt_prompt.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="基于 ChatGPT 的 Prompt 工程：情感推断、信息提取"/></a><div class="content"><a class="title" href="/2023/05/03/llm/chatgpt_prompt_engineering/lec03_inferring/" title="基于 ChatGPT 的 Prompt 工程：情感推断、信息提取">基于 ChatGPT 的 Prompt 工程：情感推断、信息提取</a><time datetime="2023-05-03T04:39:19.000Z" title="发表于 2023-05-03 12:39:19">2023-05-03</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/05/02/llm/chatgpt_prompt_engineering/lec02_iterative_prompt_development/" title="基于 ChatGPT 的 Prompt 工程：迭代式 Prompt 开发——实例展示"><img src="/static/llm/chatgpt_prompt.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="基于 ChatGPT 的 Prompt 工程：迭代式 Prompt 开发——实例展示"/></a><div class="content"><a class="title" href="/2023/05/02/llm/chatgpt_prompt_engineering/lec02_iterative_prompt_development/" title="基于 ChatGPT 的 Prompt 工程：迭代式 Prompt 开发——实例展示">基于 ChatGPT 的 Prompt 工程：迭代式 Prompt 开发——实例展示</a><time datetime="2023-05-02T04:39:19.000Z" title="发表于 2023-05-02 12:39:19">2023-05-02</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/05/01/llm/chatgpt_prompt_engineering/lec01_guideline/" title="基于 ChatGPT 的 Prompt 工程：指导方针"><img src="/static/llm/chatgpt_prompt.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="基于 ChatGPT 的 Prompt 工程：指导方针"/></a><div class="content"><a class="title" href="/2023/05/01/llm/chatgpt_prompt_engineering/lec01_guideline/" title="基于 ChatGPT 的 Prompt 工程：指导方针">基于 ChatGPT 的 Prompt 工程：指导方针</a><time datetime="2023-05-01T04:39:19.000Z" title="发表于 2023-05-01 12:39:19">2023-05-01</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2023 By LuoRongLuoRong</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.umd.min.js"></script><div class="js-pjax"><script>function loadValine () {
+  function initValine () {
+    const valine = new Valine(Object.assign({
+      el: '#vcomment',
+      appId: 'Pmg8eHZ9JK6jSBoYLIjscbQU-gzGzoHsz',
+      appKey: 'XubQmnCvDfsKzore8IzN9ALO',
+      avatar: 'monsterid',
+      serverURLs: '',
+      emojiMaps: "",
+      path: window.location.pathname,
+      visitor: true
+    }, null))
+  }
+
+  if (typeof Valine === 'function') initValine() 
+  else getScript('https://cdn.jsdelivr.net/npm/valine/dist/Valine.min.js').then(initValine)
+}
+
+if ('Valine' === 'Valine' || !true) {
+  if (true) btf.loadComment(document.getElementById('vcomment'),loadValine)
+  else setTimeout(loadValine, 0)
+} else {
+  function loadOtherComment () {
+    loadValine()
+  }
+}</script></div><script id="click-show-text" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/click-show-text.min.js" data-mobile="false" data-text="❤,🧡,💛,💚,💙,💜,🤎,🖤,🤍,💖,💘,💝,💖" data-fontsize="15px" data-random="false" async="async"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>

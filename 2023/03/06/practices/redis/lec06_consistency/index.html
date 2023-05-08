@@ -1,0 +1,428 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"><title>Redis 学习——一致性 | LuoRongLuoRong</title><meta name="author" content="LuoRongLuoRong"><meta name="copyright" content="LuoRongLuoRong"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="如果 Redis 发生了宕机，AOF 和 RDB 可以分别通过回放日志和重新读入 RDB 文件的方式恢复数据，从而保证尽量少丢失数据，提升可靠性。 不过，即使用了这两种方法，也依然存在服务不可用的问题。比如说，我们在实际使用时只运行了一个 Redis 实例，那么，如果这个实例宕机了，它在恢复期间，是无法服务新来的数据存取请求的。 那我们总说的 Redis 具有高可靠性，又是什么意思呢？其实，这里有">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis 学习——一致性">
+<meta property="og:url" content="https://luorongluorong.github.io/2023/03/06/practices/redis/lec06_consistency/index.html">
+<meta property="og:site_name" content="LuoRongLuoRong">
+<meta property="og:description" content="如果 Redis 发生了宕机，AOF 和 RDB 可以分别通过回放日志和重新读入 RDB 文件的方式恢复数据，从而保证尽量少丢失数据，提升可靠性。 不过，即使用了这两种方法，也依然存在服务不可用的问题。比如说，我们在实际使用时只运行了一个 Redis 实例，那么，如果这个实例宕机了，它在恢复期间，是无法服务新来的数据存取请求的。 那我们总说的 Redis 具有高可靠性，又是什么意思呢？其实，这里有">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://luorongluorong.github.io/static/practices/redis/redis.png">
+<meta property="article:published_time" content="2023-03-06T06:37:41.000Z">
+<meta property="article:modified_time" content="2023-04-21T10:42:40.813Z">
+<meta property="article:author" content="LuoRongLuoRong">
+<meta property="article:tag" content="Redis">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://luorongluorong.github.io/static/practices/redis/redis.png"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://luorongluorong.github.io/2023/03/06/practices/redis/lec06_consistency/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  }
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Redis 学习——一致性',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-04-21 18:42:40'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = url => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      link.onload = () => resolve()
+      link.onerror = () => reject()
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.3.0"><link rel="alternate" href="/atom.xml" title="LuoRongLuoRong" type="application/atom+xml">
+</head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">33</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">53</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">3</div></a></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/guestbook/"><i class="fa-fw fa fa-book"></i><span> 留言</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('/static/practices/redis/redis.png')"><nav id="nav"><span id="blog-info"><a href="/" title="LuoRongLuoRong"><span class="site-name">LuoRongLuoRong</span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/guestbook/"><i class="fa-fw fa fa-book"></i><span> 留言</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">Redis 学习——一致性</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="fa-fw post-meta-icon far fa-calendar-alt"></i><span class="post-meta-label">发表于</span><time datetime="2023-03-06T06:37:41.000Z" title="发表于 2023-03-06 14:37:41">2023-03-06</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%8A%80%E6%9C%AF/">技术</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">11.7k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>35分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="Redis 学习——一致性"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><p>如果 Redis 发生了宕机，AOF 和 RDB 可以分别通过回放日志和重新读入 RDB 文件的方式恢复数据，从而保证尽量少丢失数据，提升可靠性。</p>
+<p>不过，即使用了这两种方法，也依然存在服务不可用的问题。比如说，我们在实际使用时只运行了一个 Redis 实例，那么，如果这个实例宕机了，它在恢复期间，是无法服务新来的数据存取请求的。</p>
+<p>那我们总说的 Redis 具有高可靠性，又是什么意思呢？其实，这里有两层含义：一是<strong>数据尽量少丢失</strong>，二是<strong>服务尽量少中断</strong>。AOF 和 RDB 保证了前者，而对于后者，Redis 的做法就是<strong>增加副本冗余量</strong>，将一份数据同时保存在多个实例上。即使有一个实例出现了故障，需要过一段时间才能恢复，其他实例也可以对外提供服务，不会影响业务使用。</p>
+<p>副本之间的数据如何保持一致呢？</p>
+<p>本文的学习目标如下：</p>
+<ul>
+<li>了解主从库，主从库同步的原理，应对网络断连风险的方案。</li>
+<li>了解增量复制和切片集群。</li>
+<li>了解哨兵机制。</li>
+<li>了解哨兵集群。</li>
+<li>了解切片集群。</li>
+</ul>
+<h1 id="数据同步：主从库模式"><a href="#数据同步：主从库模式" class="headerlink" title="数据同步：主从库模式"></a>数据同步：主从库模式</h1><p>Redis 提供了主从库模式，以保证数据副本的一致，主从库之间采用的是读写分离的方式。</p>
+<ul>
+<li>读操作：主库、从库都可以接收；</li>
+<li>写操作：首先到主库执行，然后，主库将写操作同步给从库。</li>
+</ul>
+<p><img src="/static/practices/redis/06_01.jpg" alt="Alt text"></p>
+<p>Redis 主从库和读写分离</p>
+<p><strong>为什么要采用读写分离的方式呢？</strong></p>
+<p>维护某个数据在主库和所有从库中保持一致，要涉及到加锁、实例间协商是否完成修改等一系列操作，但这会带来巨额的开销，当然是不太能接受的。</p>
+<p>主从库模式一旦采用了读写分离，所有数据的修改只会在主库上进行，不用协调三个实例。主库有了最新的数据后，会同步给从库，这样，主从库的数据就是一致的。</p>
+<p>那么，主从库同步是如何完成的呢？</p>
+<h2 id="主从库同步"><a href="#主从库同步" class="headerlink" title="主从库同步"></a>主从库同步</h2><p>Redis 实例建立主从库模式后的规定动作，是<strong>主从库间的第一次同步</strong>。</p>
+<p>当我们启动多个 Redis 实例的时候，它们相互之间就可以通过 replicaof（Redis 5.0 之前使用 slaveof）命令形成主库和从库的关系，之后会按照三个阶段完成数据的第一次同步。</p>
+<p><img src="/static/practices/redis/06_02.jpg" alt="主从库间数据第一次同步的三个阶段示例图"></p>
+<p>主从库间数据第一次同步的三个阶段示例图</p>
+<p>第一阶段是主从库间建立连接、协商同步的过程，主要是为全量复制做准备。在这一步，从库和主库建立起连接，并告诉主库即将进行同步，主库确认回复后，主从库间就可以开始同步了。</p>
+<p>具体来说，从库给主库发送 psync 命令，表示要进行数据同步，主库根据这个命令的参数来启动复制。psync 命令包含了主库的 runID 和复制进度 offset 两个参数。</p>
+<ul>
+<li>runID，是每个 Redis 实例启动时都会自动生成的一个随机 ID，用来唯一标记这个实例。当从库和主库第一次复制时，因为不知道主库的 runID，所以将 runID 设为“？”。</li>
+<li>offset，此时设为 -1，表示第一次复制。<br>主库收到 psync 命令后，会用 FULLRESYNC 响应命令带上两个参数：主库 runID 和主库目前的复制进度 offset，返回给从库。从库收到响应后，会记录下这两个参数。</li>
+</ul>
+<p>这里有个地方需要注意，FULLRESYNC 响应表示第一次复制采用的全量复制，也就是说，主库会把当前所有的数据都复制给从库。</p>
+<p>在第二阶段，主库将所有数据同步给从库。从库收到数据后，在本地完成数据加载。这个过程依赖于内存快照生成的 RDB 文件。</p>
+<blockquote>
+<p>为什么主从库间的复制不使用 AOF？答案：有两个原因。<br>RDB 文件是二进制文件，无论是要把 RDB 写入磁盘，还是要通过网络传输 RDB，IO 效率都比记录和传输 AOF 的高。<br>在从库端进行恢复时，用 RDB 的恢复效率要高于用 AOF。</p>
+</blockquote>
+<p>具体来说，主库执行 bgsave 命令，生成 RDB 文件，接着将文件发给从库。从库接收到 RDB 文件后，会先清空当前数据库，然后加载 RDB 文件。这是因为从库在通过 replicaof 命令开始和主库同步前，可能保存了其他数据。为了避免之前数据的影响，从库需要先把当前数据库清空。</p>
+<p>在主库将数据同步给从库的过程中，主库不会被阻塞，仍然可以正常接收请求。否则，Redis 的服务就被中断了。但是，这些请求中的写操作并没有记录到刚刚生成的 RDB 文件中。为了保证主从库的数据一致性，主库会在内存中用专门的 replication buffer，记录 RDB 文件生成后收到的所有写操作。</p>
+<p>最后，也就是第三个阶段，主库会把第二阶段执行过程中新收到的写命令，再发送给从库。具体的操作是，当主库完成 RDB 文件发送后，就会把此时 replication buffer 中的修改操作发给从库，从库再重新执行这些操作。这样一来，主从库就实现同步了。</p>
+<h2 id="主从级联模式"><a href="#主从级联模式" class="headerlink" title="主从级联模式"></a>主从级联模式</h2><p>通过分析主从库间第一次数据同步的过程，你可以看到，一次全量复制中，对于主库来说，需要完成两个耗时的操作：生成 RDB 文件和传输 RDB 文件。</p>
+<p>如果从库数量很多，而且都要和主库进行全量复制的话，就会导致主库忙于 fork 子进程生成 RDB 文件，进行数据全量同步。fork 这个操作会阻塞主线程处理正常请求，从而导致主库响应应用程序的请求速度变慢（fork 操作的用时和 Redis 的数据量是正相关的）。此外，传输 RDB 文件也会占用主库的网络带宽，同样会给主库的资源使用带来压力。那么，有没有好的解决方法可以分担主库压力呢？</p>
+<p>其实是有的，这就是“主 - 从 - 从”模式。</p>
+<p>在刚才介绍的主从库模式中，所有的从库都是和主库连接，所有的全量复制也都是和主库进行的。现在，我们可以通过“主 - 从 - 从”模式将主库生成 RDB 和传输 RDB 的压力，以级联的方式分散到从库上。</p>
+<p>简单来说，我们在部署主从集群的时候，可以手动选择一个从库（比如选择内存资源配置较高的从库），用于级联其他的从库。然后，我们可以再选择一些从库（例如三分之一的从库），在这些从库上执行如下命令，让它们和刚才所选的从库，建立起主从关系。</p>
+<p>这样一来，这些从库就会知道，在进行同步时，不用再和主库进行交互了，只要和级联的从库进行写操作同步就行了，这就可以减轻主库上的压力。</p>
+<p>一旦主从库完成了全量复制，它们之间就会一直维护一个网络连接，主库会通过这个连接将后续陆续收到的命令操作再同步给从库，这个过程也称为<strong>基于长连接的命令传播</strong>，可以避免频繁建立连接的开销。</p>
+<p>但是，如果主从库间网络断了怎么办？</p>
+<h1 id="增量复制"><a href="#增量复制" class="headerlink" title="增量复制"></a>增量复制</h1><p>在 Redis 2.8 之前，如果主从库在命令传播时出现了网络闪断，那么，从库就会和主库重新进行一次<strong>全量复制</strong>，开销非常大。</p>
+<p>从 Redis 2.8 开始，网络断了之后，主从库会采用<strong>增量复制</strong>的方式继续同步，只会把主从库网络断连期间主库收到的命令，同步给从库。</p>
+<p>增量复制时，主从库之间具体是怎么保持同步的呢？这里的奥妙就在于 repl_backlog_buffer 这个缓冲区。</p>
+<p>当主从库断连后，主库会把断连期间收到的写操作命令，写入 replication buffer，同时也会把这些操作命令也写入 repl_backlog_buffer 这个缓冲区。</p>
+<p>repl_backlog_buffer 是一个环形缓冲区，主库会记录自己写到的位置，从库则会记录自己已经读到的位置。</p>
+<p>刚开始的时候，主库和从库的写读位置在一起，这算是它们的起始位置。随着主库不断接收新的写操作，它在缓冲区中的写位置会逐步偏离起始位置，我们通常用偏移量来衡量这个偏移距离的大小，对主库来说，对应的偏移量就是 master_repl_offset。主库接收的新写操作越多，这个值就会越大。</p>
+<p>同样，从库在复制完写操作命令后，它在缓冲区中的读位置也开始逐步偏移刚才的起始位置，此时，从库已复制的偏移量 slave_repl_offset 也在不断增加。正常情况下，这两个偏移量基本相等。</p>
+<p><img src="/static/practices/redis/06_03.jpg" alt="Redis repl_backlog_buffer的使用"></p>
+<p>Redis repl_backlog_buffer 的使用</p>
+<p>主从库的连接恢复之后，从库首先会给主库发送 psync 命令，并把自己当前的 slave_repl_offset 发给主库，主库会判断自己的 master_repl_offset 和 slave_repl_offset 之间的差距。</p>
+<p>在网络断连阶段，主库可能会收到新的写操作命令，所以，一般来说，master_repl_offset 会大于 slave_repl_offset。此时，主库只用把 master_repl_offset 和 slave_repl_offset 之间的命令操作同步给从库就行。</p>
+<p>repl_backlog_buffer 是一个环形缓冲区，所以在缓冲区写满后，主库会继续写入，此时，就会覆盖掉之前写入的操作。如果从库的读取速度比较慢，就有可能导致从库还未读取的操作被主库新写的操作覆盖了，这会导致主从库间的数据不一致。</p>
+<p>因此，我们要想办法避免这一情况，一般而言，我们可以调整 repl_backlog_size 这个参数。这个参数和所需的缓冲空间大小有关。缓冲空间的计算公式是：缓冲空间大小 = 主库写入命令速度 <em> 操作大小 - 主从库间网络传输命令速度 </em> 操作大小。在实际应用中，考虑到可能存在一些突发的请求压力，我们通常需要把这个缓冲空间扩大一倍，即 repl_backlog_size = 缓冲空间大小 * 2，这也就是 repl_backlog_size 的最终值。</p>
+<p>举个例子，如果主库每秒写入 2000 个操作，每个操作的大小为 2KB，网络每秒能传输 1000 个操作，那么，有 1000 个操作需要缓冲起来，这就至少需要 2MB 的缓冲空间。否则，新写的命令就会覆盖掉旧操作了。为了应对可能的突发压力，我们最终把 repl_backlog_size 设为 4MB。</p>
+<p>这样一来，增量复制时主从库的数据不一致风险就降低了。不过，如果并发请求量非常大，连两倍的缓冲空间都存不下新操作请求的话，此时，主从库数据仍然可能不一致。</p>
+<p>针对这种情况，一方面，你可以根据 Redis 所在服务器的内存资源再适当增加 repl_backlog_size 值，比如说设置成缓冲空间大小的 4 倍，另一方面，你可以考虑使用切片集群来分担单个主库的请求压力。</p>
+<h1 id="切片集群"><a href="#切片集群" class="headerlink" title="切片集群"></a>切片集群</h1><blockquote>
+<p>我曾遇到过这么一个需求：要用 Redis 保存 5000 万个键值对，每个键值对大约是 512B，为了能快速部署并对外提供服务，我们采用云主机来运行 Redis 实例，那么，该如何选择云主机的内存容量呢？<br>我粗略地计算了一下，这些键值对所占的内存空间大约是 25GB（5000 万 *512B）。所以，当时，我想到的第一个方案就是：选择一台 32GB 内存的云主机来部署 Redis。因为 32GB 的内存能保存所有数据，而且还留有 7GB，可以保证系统的正常运行。同时，我还采用 RDB 对数据做持久化，以确保 Redis 实例故障后，还能从 RDB 恢复数据。<br>但是，在使用的过程中，我发现，Redis 的响应有时会非常慢。后来，我们使用 INFO 命令查看 Redis 的 latest_fork_usec 指标值（表示最近一次 fork 的耗时），结果显示这个指标值特别高，快到秒级别了。<br>这跟 Redis 的持久化机制有关系。在使用 RDB 进行持久化时，Redis 会 fork 子进程来完成，fork 操作的用时和 Redis 的数据量是正相关的，而 fork 在执行时会阻塞主线程。数据量越大，fork 操作造成的主线程阻塞的时间越长。所以，在使用 RDB 对 25GB 的数据进行持久化时，数据量较大，后台运行的子进程在 fork 创建时阻塞了主线程，于是就导致 Redis 响应变慢了。<br>看来，第一个方案显然是不可行的，我们必须要寻找其他的方案。这个时候，我们注意到了 Redis 的切片集群。虽然组建切片集群比较麻烦，但是它可以保存大量数据，而且对 Redis 主线程的阻塞影响较小。</p>
+</blockquote>
+<p>切片集群，也叫分片集群，就是指启动多个 Redis 实例组成一个集群，然后按照一定的规则，把收到的数据划分成多份，每一份用一个实例来保存。回到我们刚刚的场景中，如果把 25GB 的数据平均分成 5 份（当然，也可以不做均分），使用 5 个实例来保存，每个实例只需要保存 5GB 数据。如下图所示：</p>
+<p><img src="./static/practices/redis/06_08.jpg" alt="Alt text"></p>
+<p>在切片集群中，实例在为 5GB 数据生成 RDB 时，数据量就小了很多，fork 子进程一般不会给主线程带来较长时间的阻塞。采用多个实例保存数据切片后，我们既能保存 25GB 数据，又避免了 fork 子进程阻塞主线程而导致的响应突然变慢。</p>
+<p>Redis 应对数据量增多的两种方案：</p>
+<ul>
+<li>纵向扩展（scale up）：升级单个 Redis 实例的资源配置，包括增加内存容量、增加磁盘容量、使用更高配置的 CPU。就像下图中，原来的实例内存是 8GB，硬盘是 50GB，纵向扩展后，内存增加到 24GB，磁盘增加到 150GB。</li>
+<li>横向扩展（scale out）：横向增加当前 Redis 实例的个数，就像下图中，原来使用 1 个 8GB 内存、50GB 磁盘的实例，现在使用三个相同配置的实例。</li>
+</ul>
+<p>大内存云主机属于纵向扩展，切片集群属于横向扩展。</p>
+<p>这两种方式的优缺点分别是什么呢？</p>
+<p>首先，纵向扩展的好处是，实施起来简单、直接。不过，这个方案也面临两个潜在的问题。</p>
+<ul>
+<li>第一个问题是，当使用 RDB 对数据进行持久化时，如果数据量增加，需要的内存也会增加，主线程 fork 子进程时就可能会阻塞（比如刚刚的例子中的情况）。不过，如果你不要求持久化保存 Redis 数据，那么，纵向扩展会是一个不错的选择。</li>
+<li>面对第二个问题，纵向扩展会受到硬件和成本的限制。这很容易理解，毕竟，把内存从 32GB 扩展到 64GB 还算容易，但是，要想扩充到 1TB，就会面临硬件容量和成本上的限制了。</li>
+</ul>
+<blockquote>
+<p>Redis 数据不要求持久化保存是什么意思？Redis 数据不要求持久化保存指的是，Redis 可以不将数据保存到磁盘上，而是只将数据缓存在内存中。这种方式可以提高 Redis 的读写性能，但是数据不具有持久性，一旦 Redis 进程被关闭，数据就会丢失。</p>
+</blockquote>
+<p>与纵向扩展相比，横向扩展是一个扩展性更好的方案。这是因为，要想保存更多的数据，采用这种方案的话，只用增加 Redis 的实例个数就行了，不用担心单个实例的硬件和成本限制。在面向百万、千万级别的用户规模时，横向扩展的 Redis 切片集群会是一个非常好的选择。</p>
+<p>不过，在只使用单个实例的时候，数据存在哪儿，客户端访问哪儿，都是非常明确的，但是，切片集群不可避免地涉及到多个实例的分布式管理问题。要想把切片集群用起来，我们就需要解决两大问题：</p>
+<ul>
+<li>数据切片后，在多个实例之间如何分布？</li>
+<li>客户端怎么确定想要访问的数据在哪个实例上？<br>接下来，我们就一个个地解决。</li>
+</ul>
+<h2 id="数据切片和实例的对应分布关系"><a href="#数据切片和实例的对应分布关系" class="headerlink" title="数据切片和实例的对应分布关系"></a>数据切片和实例的对应分布关系</h2><p>切片集群是一种保存大量数据的通用机制，这个机制可以有不同的实现方案。在 Redis 3.0 之前，官方并没有针对切片集群提供具体的方案。从 3.0 开始，官方提供了一个名为 Redis Cluster 的方案，用于实现切片集群。Redis Cluster 方案中就规定了数据和实例的对应规则。</p>
+<p>具体来说，<strong>Redis Cluster 方案</strong>采用<strong>哈希槽</strong>（Hash Slot，接下来我会直接称之为 Slot），来<strong>处理数据和实例之间的映射关系</strong>。在 Redis Cluster 方案中，一个切片集群共有 16384 个哈希槽，这些哈希槽类似于数据分区，每个键值对都会根据它的 key，被映射到一个哈希槽中。</p>
+<p>具体的映射过程分为两大步：首先根据键值对的 key，按照CRC16 算法计算一个 16 bit 的值；然后，再用这个 16bit 值对 16384 取模，得到 0~16383 范围内的模数，每个模数代表一个相应编号的哈希槽。</p>
+<blockquote>
+<p>CRC是循环冗余校验的缩写，是一种根据数据生成校验值的技术。CRC算法通过将数据块转换为比特序列，并对其进行除法运算来生成校验值。CRC16是一种16位CRC算法，它可以检测到数据传输中的错误，并在数据接收端进行纠错。这种算法常用于网络协议、通信协议和存储介质等领域。</p>
+</blockquote>
+<p>那么，<strong>这些哈希槽又是如何被映射到具体的 Redis 实例上的呢</strong>？</p>
+<p>我们在部署 Redis Cluster 方案时，可以使用 cluster create 命令创建集群，此时，Redis 会自动把这些槽平均分布在集群实例上。例如，如果集群中有 N 个实例，那么，每个实例上的槽个数为 16384/N 个。</p>
+<p>当然，我们也可以使用 cluster meet 命令手动建立实例间的连接，形成集群，再使用 cluster addslots 命令，指定每个实例上的哈希槽个数。</p>
+<p>举个例子，假设集群中不同 Redis 实例的内存大小配置不一，如果把哈希槽均分在各个实例上，在保存相同数量的键值对时，和内存大的实例相比，内存小的实例就会有更大的容量压力。遇到这种情况时，你可以根据不同实例的资源配置情况，使用 cluster addslots 命令手动分配哈希槽。</p>
+<p>为了便于你理解，我画一张示意图来解释一下，数据、哈希槽、实例这三者的映射分布情况。</p>
+<p><img src="./static/practices/redis/06_09.jpg" alt="Alt text"></p>
+<p>示意图中的切片集群一共有 3 个实例，同时假设有 5 个哈希槽，我们首先可以通过下面的命令手动分配哈希槽：实例 1 保存哈希槽 0 和 1，实例 2 保存哈希槽 2 和 3，实例 3 保存哈希槽 4。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">redis-cli -h 172.16.19.3 –p 6379 cluster addslots 0,1</span><br><span class="line">redis-cli -h 172.16.19.4 –p 6379 cluster addslots 2,3</span><br><span class="line">redis-cli -h 172.16.19.5 –p 6379 cluster addslots 4</span><br></pre></td></tr></table></figure>
+<p>在集群运行的过程中，key1 和 key2 计算完 CRC16 值后，对哈希槽总个数 5 取模，再根据各自的模数结果，就可以被映射到对应的实例 1 和实例 3 上了。</p>
+<p>另外，我再给你一个小提醒，在手动分配哈希槽时，需要把 16384 个槽都分配完，否则 Redis 集群无法正常工作。</p>
+<p>好了，通过哈希槽，切片集群就实现了数据到哈希槽、哈希槽再到实例的分配。</p>
+<blockquote>
+<p>为什么 Redis 不直接用一个表，把键值对和实例的对应关系记录下来？</p>
+<p>如果使用表记录键值对和实例的对应关系，一旦键值对和实例的对应关系发生了变化（例如实例有增减或者数据重新分布），就要修改表。如果是单线程操作表，那么所有操作都要串行执行，性能慢；如果是多线程操作表，就涉及到加锁开销。此外，如果数据量非常大，使用表记录键值对和实例的对应关系，需要的额外存储空间也会增加。</p>
+<p>基于哈希槽计算时，虽然也要记录哈希槽和实例的对应关系，但是哈希槽的个数要比键值对的个数少很多，无论是修改哈希槽和实例的对应关系，还是使用额外空间存储哈希槽和实例的对应关系，都比直接记录键值对和实例的关系的开销小得多。</p>
+</blockquote>
+<h2 id="客户端如何定位数据？"><a href="#客户端如何定位数据？" class="headerlink" title="客户端如何定位数据？"></a>客户端如何定位数据？</h2><p>一般来说，客户端和集群实例建立连接后，实例就会把哈希槽的分配信息发给客户端。但是，在集群刚刚创建的时候，每个实例只知道自己被分配了哪些哈希槽，是不知道其他实例拥有的哈希槽信息的。</p>
+<p>那么，客户端为什么可以在访问任何一个实例时，都能获得所有的哈希槽信息呢？这是因为，Redis 实例会把自己的哈希槽信息发给和它相连接的其它实例，来完成哈希槽分配信息的扩散。当实例之间相互连接后，<strong>每个实例就有所有哈希槽的映射关系</strong>了。</p>
+<p>客户端收到哈希槽信息后，会把哈希槽信息缓存在本地。当客户端请求键值对时，会先计算键所对应的哈希槽，然后就可以<strong>给相应的实例发送请求</strong>了。</p>
+<p>但是，在集群中，实例和哈希槽的对应关系并不是一成不变的，最常见的变化有两个：</p>
+<ul>
+<li>在集群中，实例有新增或删除，Redis 需要重新分配哈希槽；</li>
+<li>为了负载均衡，Redis 需要把哈希槽在所有实例上重新分布一遍。</li>
+</ul>
+<p>此时，实例之间还可以通过相互传递消息，获得最新的哈希槽分配信息，但是，客户端是无法主动感知这些变化的。这就会导致，它缓存的分配信息和最新的分配信息就不一致了，那该怎么办呢？</p>
+<p>Redis Cluster 方案提供了一种<strong>重定向机制</strong>，所谓的“重定向”，就是指，客户端给一个实例发送数据读写操作时，这个实例上并没有相应的数据，客户端要再给一个新实例发送操作命令。</p>
+<p>那客户端又是怎么知道重定向时的新实例的访问地址呢？当客户端把一个键值对的操作请求发给一个实例时，如果这个实例上并没有这个键值对映射的哈希槽，那么，这个实例就会给客户端返回下面的 MOVED 命令响应结果，这个结果中就包含了新实例的访问地址。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GET hello:key</span><br><span class="line">(error) MOVED 13320 172.16.19.5:6379</span><br></pre></td></tr></table></figure>
+<p>其中，MOVED 命令表示，客户端请求的键值对所在的哈希槽 13320，实际是在 172.16.19.5 这个实例上。通过返回的 MOVED 命令，就相当于把哈希槽所在的新实例的信息告诉给客户端了。这样一来，客户端就可以直接和 172.16.19.5 连接，并发送操作请求了。</p>
+<p>我画一张图来说明一下，MOVED 重定向命令的使用方法。可以看到，由于负载均衡，Slot 2 中的数据已经从实例 2 迁移到了实例 3，但是，客户端缓存仍然记录着“Slot 2 在实例 2”的信息，所以会给实例 2 发送命令。实例 2 给客户端返回一条 MOVED 命令，把 Slot 2 的最新位置（也就是在实例 3 上），返回给客户端，客户端就会再次向实例 3 发送请求，同时还会更新本地缓存，把 Slot 2 与实例的对应关系更新过来。</p>
+<p><img src="./static/practices/redis/06_10.jpg" alt="客户端MOVED重定向命令"></p>
+<p>客户端MOVED重定向命令</p>
+<p>需要注意的是，在上图中，当客户端给实例 2 发送命令时，Slot 2 中的数据已经全部迁移到了实例 3。在实际应用时，如果 Slot 2 中的数据比较多，就可能会出现一种情况：客户端向实例 2 发送请求，但此时，Slot 2 中的数据只有一部分迁移到了实例 3，还有部分数据没有迁移。在这种迁移部分完成的情况下，客户端就会收到一条 ASK 报错信息，如下所示：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GET hello:key</span><br><span class="line">(error) ASK 13320 172.16.19.5:6379</span><br></pre></td></tr></table></figure>
+<p>这个结果中的 ASK 命令就表示，客户端请求的键值对所在的哈希槽 13320，在 172.16.19.5 这个实例上，但是这个哈希槽正在迁移。此时，客户端需要先给 172.16.19.5 这个实例发送一个 ASKING 命令。这个命令的意思是，让这个实例允许执行客户端接下来发送的命令。然后，客户端再向这个实例发送 GET 命令，以读取数据。</p>
+<p>ASK 命令表示两层含义：第一，表明 Slot 数据还在迁移中；第二，ASK 命令把客户端所请求数据的最新实例地址返回给客户端，此时，客户端需要给实例 172.16.19.5 发送 ASKING 命令，然后再发送操作命令。</p>
+<p>和 MOVED 命令不同，ASK 命令并不会更新客户端缓存的哈希槽分配信息。所以，在上图中，如果客户端再次请求 172.16.19.5 中的数据，它还是会给实例 172.16.19.5 发送请求。这也就是说，ASK 命令的作用只是让客户端能给新实例发送一次请求，而不像 MOVED 命令那样，会更改本地缓存，让后续所有命令都发往新实例。</p>
+<blockquote>
+<p>我觉得有可能数据迁移失败，所以ASK 命令的作用只是让客户端能给新实例发送一次请求。</p>
+</blockquote>
+<h1 id="哨兵机制"><a href="#哨兵机制" class="headerlink" title="哨兵机制"></a>哨兵机制</h1><p>主从库集群模式下，如果主库发生故障了，那就直接会影响到从库的同步，因为从库没有相应的主库可以进行数据复制操作了。</p>
+<p>而且，如果客户端发送的都是读操作请求，那还可以由从库继续提供服务，这在纯读的业务场景下还能被接受。但是，一旦有写操作请求了，按照主从库模式下的读写分离要求，需要由主库来完成写操作。此时，也没有实例可以来服务客户端的写操作请求了。</p>
+<p>主库挂了设计到三个问题：</p>
+<ol>
+<li>主库真的挂了吗？</li>
+<li>该选择哪个从库作为主库？</li>
+<li>怎么把新主库的相关信息通知给从库和客户端呢？</li>
+</ol>
+<p>Redis 主从集群中，哨兵机制是实现主从库自动切换的关键机制，它有效地解决了主从复制模式下故障转移的这三个问题。</p>
+<p>哨兵其实就是一个运行在特殊模式下的 Redis 进程，主从库实例运行的同时，它也在运行。哨兵主要负责的就是三个任务：监控、选主（选择主库）和通知。</p>
+<p><img src="/static/practices/redis/06_04.jpg" alt="Alt text"></p>
+<p>切片集群架构图</p>
+<h2 id="监控"><a href="#监控" class="headerlink" title="监控"></a>监控</h2><p>监控是指哨兵进程在运行时，周期性地给所有的主从库发送 PING 命令，检测它们是否仍然在线运行。如果从库没有在规定时间内响应哨兵的 PING 命令，哨兵就会把它标记为“下线状态”；同样，如果主库也没有在规定时间内响应哨兵的 PING 命令，哨兵就会判定主库下线，然后开始自动切换主库的流程。</p>
+<p>哨兵对主库的下线判断有“主观下线”和“客观下线”两种。</p>
+<h3 id="主观下线"><a href="#主观下线" class="headerlink" title="主观下线"></a>主观下线</h3><p>哨兵进程会使用 PING 命令检测它自己和主、从库的网络连接情况，用来判断实例的状态。如果哨兵发现主库或从库对 PING 命令的响应超时了，那么，哨兵就会先把它标记为“主观下线”。</p>
+<p>如果检测的是从库，那么，哨兵简单地把它标记为“主观下线”就行了，因为从库的下线影响一般不太大，集群的对外服务不会间断。</p>
+<p>但是，如果检测的是主库，那么，哨兵还不能简单地把它标记为“主观下线”，开启主从切换。因为很有可能存在这么一个情况：那就是哨兵误判了，其实主库并没有故障。<strong>误判</strong>是主库实际并没有下线，但是哨兵误以为它下线了。误判一般会发生在集群网络压力较大、网络拥塞，或者是主库本身压力较大的情况下。</p>
+<p>哨兵机制通常会采用多实例组成的集群模式进行部署，这也被称为哨兵集群。引入多个哨兵实例一起来判断，就可以避免单个哨兵因为自身网络状况不好，而误判主库下线的情况。同时，多个哨兵的网络同时不稳定的概率较小，由它们一起做决策，误判率也能降低。</p>
+<h3 id="客观下线"><a href="#客观下线" class="headerlink" title="客观下线"></a>客观下线</h3><p>在判断主库是否下线时，不能由一个哨兵说了算，只有大多数的哨兵实例，都判断主库已经“主观下线”了，主库才会被标记为“客观下线”，这个叫法也是表明主库下线成为一个客观事实了。这个判断原则就是：少数服从多数。同时，这会进一步触发哨兵开始主从切换流程。</p>
+<p>简单来说，“客观下线”的标准就是，当有 N 个哨兵实例时，最好要有 N/2 + 1 个实例判断主库为“主观下线”，才能最终判定主库为“客观下线”。这样一来，就可以减少误判的概率，也能避免误判带来的无谓的主从库切换。（当然，有多少个实例做出“主观下线”的判断才可以，可以由 Redis 管理员自行设定）。</p>
+<p>任何一个实例只要自身判断主库“主观下线”后，就会给其他实例发送 is-master-down-by-addr 命令。接着，其他实例会根据自己和主库的连接情况，做出 Y 或 N 的响应，Y 相当于赞成票，N 相当于反对票。</p>
+<p><img src="/static/practices/redis/06_07.jpg" alt="Alt text"></p>
+<p>一个哨兵获得了仲裁所需的赞成票数后，就可以标记主库为“客观下线”。</p>
+<p>此时，这个哨兵就可以再给其他哨兵发送命令，表明希望由自己来执行主从切换，并让所有其他哨兵进行投票。这个投票过程称为“Leader 选举”。因为最终执行主从切换的哨兵称为 Leader，投票过程就是确定 Leader。</p>
+<p>在投票过程中，任何一个想成为 Leader 的哨兵，要满足两个条件：第一，拿到半数以上的赞成票；第二，拿到的票数同时还需要大于等于哨兵配置文件中的 quorum 值。</p>
+<blockquote>
+<p>注意，主从切换的条件是比较严格的。<br>判定主库“客观下线”的依据是，认为主库“主观下线”的哨兵个数要大于等于 quorum 值。<br>如果一个哨兵想要执行主从切换，哨兵投票赞成不仅要大于等于 quorum 值，还要达到半数以上。</p>
+</blockquote>
+<p>如果投票没有产生 Leader（没有任何一个哨兵获得半数以上的赞成票），哨兵集群会等待一段时间（也就是哨兵故障转移超时时间的 2 倍），再重新选举。这是因为，哨兵集群能够进行成功投票，很大程度上依赖于选举命令的正常网络传播。如果网络压力较大或有短时堵塞，就可能导致没有一个哨兵能拿到半数以上的赞成票。所以，等到网络拥塞好转之后，再进行投票选举，成功的概率就会增加。</p>
+<p>需要注意的是，如果哨兵集群只有 2 个实例，此时，一个哨兵要想成为 Leader，必须获得 2 票，而不是 1 票。所以，如果有个哨兵挂掉了，那么，此时的集群是无法进行主从库切换的。因此，通常我们至少会配置 3 个哨兵实例。</p>
+<blockquote>
+<p>在主从切换过程中，客户端能否正常地进行请求操作呢？</p>
+<p>主从集群一般是采用读写分离模式，当主库故障后，客户端仍然可以把读请求发送给从库，让从库服务。但是，对于写请求操作，客户端就无法执行了。</p>
+<p>哨兵实例是不是越多越好呢？如果同时调大 down-after-milliseconds 值，对减少误判是不是也有好处？</p>
+<p>哨兵实例越多，误判率会越低，但是在判定主库下线和选举 Leader 时，实例需要拿到的赞成票数也越多，等待所有哨兵投完票的时间可能也会相应增加，主从库切换的时间也会变长，客户端容易堆积较多的请求操作，可能会导致客户端请求溢出，从而造成请求丢失。如果业务层对 Redis 的操作有响应时间要求，就可能会因为新主库一直没有选定，新操作无法执行而发生超时报警。</p>
+<p>调大 down-after-milliseconds 后，可能会导致这样的情况：主库实际已经发生故障了，但是哨兵过了很长时间才判断出来，这就会影响到 Redis 对业务的可用性。</p>
+</blockquote>
+<h2 id="选主"><a href="#选主" class="headerlink" title="选主"></a>选主</h2><p>主库挂了以后，哨兵就需要从很多个从库里，按照一定的规则选择一个从库实例，把它作为新的主库。这一步完成后，现在的集群里就有了新主库。</p>
+<p>在多个从库中，先按照一定的筛选条件，把不符合条件的从库去掉。然后，我们再按照一定的规则，给剩下的从库逐个打分，将得分最高的从库选为新主库。</p>
+<ol>
+<li>筛选：检查从库的当前在线状态，判断它之前的网络连接状态。不符合筛选条件的一律淘汰。</li>
+<li>打分：从库优先级、从库复制进度以及从库 ID 号。只要在某一轮中，有从库得分最高，那么它就是新的主库。</li>
+</ol>
+<p>第二个打分条件中，如何判断从库和旧主库间的同步进度呢？</p>
+<p>主从库同步时有个命令传播的过程。在这个过程中，主库会用 master_repl_offset 记录当前的最新写操作在 repl_backlog_buffer 中的位置，而从库会用 slave_repl_offset 这个值记录当前的复制进度。</p>
+<p>此时，我们想要找的从库，它的 slave_repl_offset 需要最接近 master_repl_offset。如果在所有从库中，有<strong>从库的 slave_repl_offset 最接近 master_repl_offset</strong>，那么它的得分就最高，可以作为新主库。</p>
+<h2 id="通知"><a href="#通知" class="headerlink" title="通知"></a>通知</h2><p>在执行通知任务时，哨兵会把新主库的连接信息发给其他从库，让它们执行 replicaof 命令，和新主库建立连接，并进行数据复制。同时，哨兵会把新主库的连接信息通知给客户端，让它们把请求操作发到新主库上。</p>
+<hr>
+<p>如果有哨兵实例在运行时发生了故障，主从库还能正常切换吗？</p>
+<p>实际上，一旦多个实例组成了哨兵集群，即使有哨兵实例出现故障挂掉了，其他哨兵还能继续协作完成主从库切换的工作，包括判定主库是不是处于下线状态，选择新主库，以及通知从库和客户端。</p>
+<p>如果你部署过哨兵集群的话就会知道，在配置哨兵的信息时，我们只需要用到下面的这个配置项，设置主库的 IP 和端口，并没有配置其他哨兵的连接信息。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sentinel monitor &lt;master-name&gt; &lt;ip&gt; &lt;redis-port&gt; &lt;quorum&gt; </span><br></pre></td></tr></table></figure>
+<p>这些哨兵实例既然都不知道彼此的地址，又是怎么组成集群的呢？要弄明白这个问题，我们就需要学习一下哨兵集群的组成和运行机制了。</p>
+<h1 id="基于-pub-sub-机制的哨兵集群组成"><a href="#基于-pub-sub-机制的哨兵集群组成" class="headerlink" title="基于 pub/sub 机制的哨兵集群组成"></a>基于 pub/sub 机制的哨兵集群组成</h1><p>哨兵实例之间可以相互发现，要归功于 Redis 提供的 pub/sub 机制，也就是发布 / 订阅机制。</p>
+<p>哨兵只要和主库建立起了连接，就可以在主库上发布消息了，比如说发布它自己的连接信息（IP 和端口）。同时，它也可以从主库上订阅消息，获得其他哨兵发布的连接信息。当多个哨兵实例都在主库上做了发布和订阅操作后，它们之间就能知道彼此的 IP 地址和端口。</p>
+<p>为了区分不同应用的消息，Redis 会以<strong>频道</strong>的形式，对这些消息进行分门别类的管理。所谓的频道，实际上就是消息的类别。当消息类别相同时，它们就属于同一个频道。反之，就属于不同的频道。只有订阅了同一个频道的应用，才能通过发布的消息进行信息交换。</p>
+<p>在主从集群中，主库上有一个名为“sentinel:hello”的频道，不同哨兵就是通过它来相互发现，实现互相通信的。</p>
+<p>哨兵除了彼此之间建立起连接形成集群外，还需要和从库建立连接。这是因为，在哨兵的监控任务中，它需要对主从库都进行心跳判断，而且在主从库切换完成后，它还需要通知从库，让它们和新主库进行同步。</p>
+<p>哨兵是如何知道从库的 IP 地址和端口的呢？这是由哨兵向主库发送 <strong>INFO</strong> 命令来完成的。</p>
+<p><img src="/static/practices/redis/06_05.jpg" alt="Alt text"></p>
+<p>通过 pub/sub 机制，哨兵之间可以组成集群，同时，哨兵又通过 INFO 命令，获得了从库连接信息，也能和从库建立连接，并进行监控了。</p>
+<p>但是，哨兵不能只和主、从库连接。因为，主从库切换后，客户端也需要知道新主库的连接信息，才能向新主库发送请求操作。所以，哨兵还需要完成把新主库的信息告诉客户端这个任务。</p>
+<p>而且，在实际使用哨兵时，我们有时会遇到这样的问题：如何在客户端通过监控了解哨兵进行主从切换的过程呢？比如说，主从切换进行到哪一步了？这其实就是要求，客户端能够获取到哨兵集群在监控、选主、切换这个过程中发生的各种事件。</p>
+<blockquote>
+<p>客户端为什么需要知道主库的信息？难道不是走一个 ip 地址就可以了吗？</p>
+</blockquote>
+<p>此时，我们仍然可以依赖 pub/sub 机制，来帮助我们完成哨兵和客户端间的信息同步。</p>
+<h1 id="基于-pub-sub-机制的客户端事件通知"><a href="#基于-pub-sub-机制的客户端事件通知" class="headerlink" title="基于 pub/sub 机制的客户端事件通知"></a>基于 pub/sub 机制的客户端事件通知</h1><p>从本质上说，哨兵就是一个运行在特定模式下的 Redis 实例，只不过它并不服务请求操作，只是完成监控、选主和通知的任务。所以，每个哨兵实例也提供 pub/sub 机制，客户端可以从哨兵订阅消息。哨兵提供的消息订阅频道有很多，不同频道包含了主从库切换过程中的不同关键事件。</p>
+<p>频道有这么多，一下子全部学习容易丢失重点。为了减轻你的学习压力，我把重要的频道汇总在了一起，涉及几个关键事件，包括主库下线判断、新主库选定、从库重新配置。</p>
+<p><img src="/static/practices/redis/06_06.jpg" alt="Alt text"></p>
+<p>知道了这些频道之后，你就可以让客户端从哨兵这里订阅消息了。具体的操作步骤是，客户端读取哨兵的配置文件后，可以获得哨兵的地址和端口，和哨兵建立网络连接。然后，我们可以在客户端执行订阅命令，来获取不同的事件消息。</p>
+<p>举个例子，你可以执行 <code>SUBSCRIBE +odown</code> 命令，来订阅“所有实例进入客观下线状态的事件”；<code>PSUBSCRIBE  *</code> 订阅所有事件。</p>
+<p>当哨兵把新主库选择出来后，客户端就会看到下面的 switch-master 事件。这个事件表示主库已经切换了，新主库的 IP 地址和端口信息已经有了。这个时候，客户端就可以用这里面的新主库地址和端口进行通信了。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">switch-master &lt;master name&gt; &lt;oldip&gt; &lt;oldport&gt; &lt;newip&gt; &lt;newport&gt;</span><br></pre></td></tr></table></figure>
+<p>有了这些事件通知，客户端不仅可以在主从切换后得到新主库的连接信息，还可以监控到主从库切换过程中发生的各个重要事件。这样，客户端就可以知道主从切换进行到哪一步了，有助于了解切换进度。</p>
+<blockquote>
+<p>如果想要应用程序不感知服务的中断，还需要哨兵或客户端再做些什么吗？<br>一方面，客户端需要能缓存应用发送的写请求。只要不是同步写操作（Redis 应用场景一般也没有同步写），写请求通常不会在应用程序的关键路径上，所以，客户端缓存写请求后，给应用程序返回一个确认就行。<br>另一方面，主从切换完成后，客户端要能和新主库重新建立连接，哨兵需要提供订阅频道，让客户端能够订阅到新主库的信息。同时，客户端也需要能主动和哨兵通信，询问新主库的信息。</p>
+</blockquote>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>主从库间是通过<strong>全量复制</strong>实现数据同步的过程，以及通过“主 - 从 - 从”<strong>主从级联模式</strong>分担主库压力的方式。</p>
+<p>主从库之间通过 replicaof 命令形成主库和从库的关系，之后会按照三个阶段完成数据的第一次同步。这三个阶段的任务分别是：</p>
+<ol>
+<li>建立连接，协商同步；</li>
+<li>主库发送 RDB 文件同步数据给从库；</li>
+<li>主库发送 repl buffer 新鞋的命令给从库。</li>
+</ol>
+<p>网络断了之后，主从库会采用<strong>增量复制</strong>的方式继续同步。即，把主从库网络断连期间主库收到的命令，同步给从库。方式是通过比较主库和从库的 repl_backlog_buffer 环形缓冲区，衡量偏移量的大小。</p>
+<p>当数据量过大的时候，可以考虑使用切片集群。</p>
+<p>为了实现主从切换，我们引入了哨兵；为了避免单个哨兵故障后无法进行主从切换，以及为了减少误判率，又引入了哨兵集群；哨兵集群又需要有一些机制来支撑它的正常运行。</p>
+<p>哨兵机制，它是实现 Redis 主从库集群模式不间断服务的重要保证。具体来说，主从集群的数据同步，是数据可靠的基础保证；而在主库发生故障时，自动的主从切换是服务不间断的关键支撑。</p>
+<p>Redis 的哨兵机制自动完成了以下三大功能，从而实现了主从库的自动切换，可以降低 Redis 集群的运维开销：</p>
+<ul>
+<li>监控：监控主库运行状态，并判断主库是否客观下线；</li>
+<li>选主：在主库客观下线后，选取新主库；</li>
+<li>通知：选出新主库后，通知从库和客户端。</li>
+</ul>
+<p>要保证所有哨兵实例的配置是一致的，尤其是主观下线的判断值 down-after-milliseconds。我们曾经就踩过一个“坑”。当时，在我们的项目中，因为这个值在不同的哨兵实例上配置不一致，导致哨兵集群一直没有对有故障的主库形成共识，也就没有及时切换主库，最终的结果就是集群服务不稳定。</p>
+<p>本文还介绍了哨兵集群相关的事件：</p>
+<ul>
+<li>基于 pub/sub 机制的哨兵集群组成过程；</li>
+<li>基于 INFO 命令的从库列表，这可以帮助哨兵和从库建立连接；</li>
+<li>基于哨兵自身的 pub/sub 功能，这实现了客户端和哨兵之间的事件通知。</li>
+</ul>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
+<li><a target="_blank" rel="noopener" href="http://learn.lianglianglee.com/%E4%B8%93%E6%A0%8F/Redis%20%E6%A0%B8%E5%BF%83%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98/06%20%20%E6%95%B0%E6%8D%AE%E5%90%8C%E6%AD%A5%EF%BC%9A%E4%B8%BB%E4%BB%8E%E5%BA%93%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%EF%BC%9F.md">数据同步：主从库如何实现数据一致</a></li>
+<li><a target="_blank" rel="noopener" href="http://learn.lianglianglee.com/%E4%B8%93%E6%A0%8F/Redis%20%E6%A0%B8%E5%BF%83%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98/07%20%20%E5%93%A8%E5%85%B5%E6%9C%BA%E5%88%B6%EF%BC%9A%E4%B8%BB%E5%BA%93%E6%8C%82%E4%BA%86%EF%BC%8C%E5%A6%82%E4%BD%95%E4%B8%8D%E9%97%B4%E6%96%AD%E6%9C%8D%E5%8A%A1%EF%BC%9F.md">哨兵机制：主库挂了，如何不间断服务</a></li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="https://LuoRongLuoRong.github.io">LuoRongLuoRong</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://luorongluorong.github.io/2023/03/06/practices/redis/lec06_consistency/">https://luorongluorong.github.io/2023/03/06/practices/redis/lec06_consistency/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://LuoRongLuoRong.github.io" target="_blank">LuoRongLuoRong</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Redis/">Redis</a></div><div class="post_share"><div class="social-share" data-image="/static/practices/redis/redis.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2023/03/16/bases/java_random/" title="Java 中的随机数"><img class="cover" src="/img/flag.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">Java 中的随机数</div></div></a></div><div class="next-post pull-right"><a href="/2023/03/05/problems/prime_number/" title="质数、因数和质因数"><img class="cover" src="/static/problems/prime_numbers.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">质数、因数和质因数</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2023/03/01/practices/redis/lec01_intro/" title="Redis 学习——简介"><img class="cover" src="/static/practices/redis/redis.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-03-01</div><div class="title">Redis 学习——简介</div></div></a></div><div><a href="/2023/03/02/practices/redis/lec02_data_structure/" title="Redis 学习——数据结构"><img class="cover" src="/static/practices/redis/redis.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-03-02</div><div class="title">Redis 学习——数据结构</div></div></a></div><div><a href="/2023/03/03/practices/redis/lec03_thread/" title="Redis 学习——单线程实现高性能"><img class="cover" src="/static/practices/redis/redis.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-03-03</div><div class="title">Redis 学习——单线程实现高性能</div></div></a></div><div><a href="/2023/03/04/practices/redis/lec04_aof/" title="Redis 学习——AOF日志"><img class="cover" src="/static/practices/redis/redis.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-03-04</div><div class="title">Redis 学习——AOF日志</div></div></a></div><div><a href="/2023/03/05/practices/redis/lec05_rdb/" title="Redis 学习——内存快照 RDB"><img class="cover" src="/static/practices/redis/redis.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-03-05</div><div class="title">Redis 学习——内存快照 RDB</div></div></a></div></div></div><hr/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">LuoRongLuoRong</div><div class="author-info__description"></div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">33</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">53</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">3</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/LuoRongLuoRong"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/LuoRongLuoRong" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:luorongfamily@qq.com" target="_blank" title="Email"><i class="fas fa-envelope"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>简介</span></div><div class="announcement_content">复旦大学计算机软件与理论硕士</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%90%8C%E6%AD%A5%EF%BC%9A%E4%B8%BB%E4%BB%8E%E5%BA%93%E6%A8%A1%E5%BC%8F"><span class="toc-text">数据同步：主从库模式</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BB%E4%BB%8E%E5%BA%93%E5%90%8C%E6%AD%A5"><span class="toc-text">主从库同步</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BB%E4%BB%8E%E7%BA%A7%E8%81%94%E6%A8%A1%E5%BC%8F"><span class="toc-text">主从级联模式</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%A2%9E%E9%87%8F%E5%A4%8D%E5%88%B6"><span class="toc-text">增量复制</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%88%87%E7%89%87%E9%9B%86%E7%BE%A4"><span class="toc-text">切片集群</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%88%87%E7%89%87%E5%92%8C%E5%AE%9E%E4%BE%8B%E7%9A%84%E5%AF%B9%E5%BA%94%E5%88%86%E5%B8%83%E5%85%B3%E7%B3%BB"><span class="toc-text">数据切片和实例的对应分布关系</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%A6%82%E4%BD%95%E5%AE%9A%E4%BD%8D%E6%95%B0%E6%8D%AE%EF%BC%9F"><span class="toc-text">客户端如何定位数据？</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%93%A8%E5%85%B5%E6%9C%BA%E5%88%B6"><span class="toc-text">哨兵机制</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9B%91%E6%8E%A7"><span class="toc-text">监控</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BB%E8%A7%82%E4%B8%8B%E7%BA%BF"><span class="toc-text">主观下线</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%A2%E8%A7%82%E4%B8%8B%E7%BA%BF"><span class="toc-text">客观下线</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%80%89%E4%B8%BB"><span class="toc-text">选主</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%80%9A%E7%9F%A5"><span class="toc-text">通知</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%9F%BA%E4%BA%8E-pub-sub-%E6%9C%BA%E5%88%B6%E7%9A%84%E5%93%A8%E5%85%B5%E9%9B%86%E7%BE%A4%E7%BB%84%E6%88%90"><span class="toc-text">基于 pub&#x2F;sub 机制的哨兵集群组成</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%9F%BA%E4%BA%8E-pub-sub-%E6%9C%BA%E5%88%B6%E7%9A%84%E5%AE%A2%E6%88%B7%E7%AB%AF%E4%BA%8B%E4%BB%B6%E9%80%9A%E7%9F%A5"><span class="toc-text">基于 pub&#x2F;sub 机制的客户端事件通知</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-text">总结</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-text">参考</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2023/05/05/llm/chatgpt_prompt_engineering/lec05_chatbot/" title="基于 ChatGPT 的 Prompt 工程：定制化任务"><img src="/static/llm/chatgpt_prompt.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="基于 ChatGPT 的 Prompt 工程：定制化任务"/></a><div class="content"><a class="title" href="/2023/05/05/llm/chatgpt_prompt_engineering/lec05_chatbot/" title="基于 ChatGPT 的 Prompt 工程：定制化任务">基于 ChatGPT 的 Prompt 工程：定制化任务</a><time datetime="2023-05-05T04:39:19.000Z" title="发表于 2023-05-05 12:39:19">2023-05-05</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/05/04/llm/chatgpt_prompt_engineering/lec04_transforming/" title="基于 ChatGPT 的 Prompt 工程：文本转换任务"><img src="/static/llm/chatgpt_prompt.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="基于 ChatGPT 的 Prompt 工程：文本转换任务"/></a><div class="content"><a class="title" href="/2023/05/04/llm/chatgpt_prompt_engineering/lec04_transforming/" title="基于 ChatGPT 的 Prompt 工程：文本转换任务">基于 ChatGPT 的 Prompt 工程：文本转换任务</a><time datetime="2023-05-04T04:39:19.000Z" title="发表于 2023-05-04 12:39:19">2023-05-04</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/05/03/llm/chatgpt_prompt_engineering/lec03_inferring/" title="基于 ChatGPT 的 Prompt 工程：情感推断、信息提取"><img src="/static/llm/chatgpt_prompt.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="基于 ChatGPT 的 Prompt 工程：情感推断、信息提取"/></a><div class="content"><a class="title" href="/2023/05/03/llm/chatgpt_prompt_engineering/lec03_inferring/" title="基于 ChatGPT 的 Prompt 工程：情感推断、信息提取">基于 ChatGPT 的 Prompt 工程：情感推断、信息提取</a><time datetime="2023-05-03T04:39:19.000Z" title="发表于 2023-05-03 12:39:19">2023-05-03</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/05/02/llm/chatgpt_prompt_engineering/lec02_iterative_prompt_development/" title="基于 ChatGPT 的 Prompt 工程：迭代式 Prompt 开发——实例展示"><img src="/static/llm/chatgpt_prompt.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="基于 ChatGPT 的 Prompt 工程：迭代式 Prompt 开发——实例展示"/></a><div class="content"><a class="title" href="/2023/05/02/llm/chatgpt_prompt_engineering/lec02_iterative_prompt_development/" title="基于 ChatGPT 的 Prompt 工程：迭代式 Prompt 开发——实例展示">基于 ChatGPT 的 Prompt 工程：迭代式 Prompt 开发——实例展示</a><time datetime="2023-05-02T04:39:19.000Z" title="发表于 2023-05-02 12:39:19">2023-05-02</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/05/01/llm/chatgpt_prompt_engineering/lec01_guideline/" title="基于 ChatGPT 的 Prompt 工程：指导方针"><img src="/static/llm/chatgpt_prompt.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="基于 ChatGPT 的 Prompt 工程：指导方针"/></a><div class="content"><a class="title" href="/2023/05/01/llm/chatgpt_prompt_engineering/lec01_guideline/" title="基于 ChatGPT 的 Prompt 工程：指导方针">基于 ChatGPT 的 Prompt 工程：指导方针</a><time datetime="2023-05-01T04:39:19.000Z" title="发表于 2023-05-01 12:39:19">2023-05-01</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2023 By LuoRongLuoRong</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.umd.min.js"></script><div class="js-pjax"><script>function loadValine () {
+  function initValine () {
+    const valine = new Valine(Object.assign({
+      el: '#vcomment',
+      appId: 'Pmg8eHZ9JK6jSBoYLIjscbQU-gzGzoHsz',
+      appKey: 'XubQmnCvDfsKzore8IzN9ALO',
+      avatar: 'monsterid',
+      serverURLs: '',
+      emojiMaps: "",
+      path: window.location.pathname,
+      visitor: true
+    }, null))
+  }
+
+  if (typeof Valine === 'function') initValine() 
+  else getScript('https://cdn.jsdelivr.net/npm/valine/dist/Valine.min.js').then(initValine)
+}
+
+if ('Valine' === 'Valine' || !true) {
+  if (true) btf.loadComment(document.getElementById('vcomment'),loadValine)
+  else setTimeout(loadValine, 0)
+} else {
+  function loadOtherComment () {
+    loadValine()
+  }
+}</script></div><script id="click-show-text" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/click-show-text.min.js" data-mobile="false" data-text="❤,🧡,💛,💚,💙,💜,🤎,🖤,🤍,💖,💘,💝,💖" data-fontsize="15px" data-random="false" async="async"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
